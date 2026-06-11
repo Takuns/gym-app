@@ -2,13 +2,14 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { pb } from '../lib/pocketbase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Dumbbell, Flame, Utensils, Zap, Play, Coffee, Plus, Sparkles, RefreshCw, ChevronDown, ChevronUp, Beef, Wheat, Droplet } from 'lucide-react';
+import { Dumbbell, Flame, Utensils, Zap, Play, Coffee, Plus, Sparkles, RefreshCw, ChevronDown, ChevronUp, Beef, Wheat, Droplet, Activity } from 'lucide-react';
 
 import CalendarWidget from './CalendarWidget';
 import DailyLog from './DailyLog';
 import ExerciseCard from './ExerciseCard';
 import FloatingRestTimer, { cn } from './FloatingRestTimer';
 import AddSportModal from './AddSportModal';
+import AddManualCaloriesModal from './AddManualCaloriesModal';
 import { generateWeeklyDiet } from '../lib/dietAlgorithm';
 import { regenerateSingleMeal } from '../lib/geminiService';
 
@@ -36,6 +37,7 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
   // UI states
   const [showAddSport, setShowAddSport] = useState(false);
   const [openMealFormTrigger, setOpenMealFormTrigger] = useState(0);
+  const [showAddManualCalories, setShowAddManualCalories] = useState(false);
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -755,6 +757,13 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
               <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-500"><Flame size={14} /></div>
             </button>
             <button
+              onClick={() => { setShowAddManualCalories(true); setIsFabOpen(false); }}
+              className="flex items-center gap-3 bg-surface border border-border/50 text-white font-bold text-xs py-2 px-4 rounded-full shadow-lg hover:bg-surface-hover animate-in slide-in-from-bottom-3 duration-200"
+            >
+              <span>Calorías Manuales</span>
+              <div className="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-500"><Activity size={14} /></div>
+            </button>
+            <button
               onClick={() => { setOpenMealFormTrigger(prev => prev + 1); setIsFabOpen(false); }}
               className="flex items-center gap-3 bg-surface border border-border/50 text-white font-bold text-xs py-2 px-4 rounded-full shadow-lg hover:bg-surface-hover animate-in slide-in-from-bottom-4 duration-200"
             >
@@ -775,6 +784,9 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
 
       {showAddSport && user && (
         <AddSportModal user={user} date={selectedDate} onClose={() => setShowAddSport(false)} onSportAdded={triggerRefresh} />
+      )}
+      {showAddManualCalories && user && (
+        <AddManualCaloriesModal user={user} date={selectedDate} onClose={() => setShowAddManualCalories(false)} onAdded={triggerRefresh} />
       )}
     </div>
   );

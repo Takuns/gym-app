@@ -88,8 +88,8 @@ export default function AddExerciseModal({ entrenamientoDiarioId, plantillaId, o
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#0f1115] w-full sm:w-[450px] rounded-t-3xl sm:rounded-3xl border-t sm:border border-border/60 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-4 duration-300">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-[#0f1115] w-full sm:w-[450px] rounded-t-3xl sm:rounded-3xl border-t sm:border border-border/60 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-4 duration-300 pb-safe">
         
         <div className="flex items-center justify-between p-5 border-b border-border/50 bg-surface/50">
           <h2 className="text-lg font-black text-white flex items-center gap-2">

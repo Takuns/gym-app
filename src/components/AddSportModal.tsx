@@ -52,7 +52,7 @@ export default function AddSportModal({ user, date, onClose, onSportAdded }: Add
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm">
       <div className="bg-surface-hover w-full sm:w-[400px] rounded-t-3xl sm:rounded-3xl border border-border/50 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-4 duration-300">
         
         <div className="p-5 flex items-center justify-between border-b border-border/50">
@@ -64,7 +64,7 @@ export default function AddSportModal({ user, date, onClose, onSportAdded }: Add
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-6 pb-8 sm:pb-6 space-y-4 pb-safe">
           <p className="text-sm text-text-muted">
             Describe qué deporte o actividad física has hecho hoy y nuestra IA estimará las calorías quemadas.
           </p>

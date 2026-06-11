@@ -108,15 +108,21 @@ export default function DailyLog({ user, selectedDate, forceOpenFormTrigger, onF
     try {
       // Get max order
       const maxOrder = meals.length > 0 ? Math.max(...meals.map(m => m.orden || 0)) : 0;
+      const prot = parseInt(formData.proteinas) || 0;
+      const carb = parseInt(formData.carbohidratos) || 0;
+      const fat = parseInt(formData.grasas) || 0;
+      const calInput = parseInt(formData.calorias) || 0;
+      const calFinal = calInput > 0 ? calInput : (prot * 4 + carb * 4 + fat * 9);
+
       await pb.collection('comidas_diarias').create({
         usuario: user.id,
         fecha: format(selectedDate, 'yyyy-MM-dd') + 'T12:00:00.000Z',
         nombre_comida: formData.nombre_comida,
         detalles: formData.detalles,
-        calorias: parseInt(formData.calorias) || 0,
-        proteinas: parseInt(formData.proteinas) || 0,
-        carbohidratos: parseInt(formData.carbohidratos) || 0,
-        grasas: parseInt(formData.grasas) || 0,
+        calorias: calFinal,
+        proteinas: prot,
+        carbohidratos: carb,
+        grasas: fat,
         orden: maxOrder + 1
       });
       setFormData({ nombre_comida: 'Desayuno', detalles: '', calorias: '', proteinas: '', carbohidratos: '', grasas: '' });

@@ -233,14 +233,18 @@ export function generateWeeklyDiet(objetivo: string, caloriasObjetivo: number): 
   return templates.map(day => ({
     dia: day.dia,
     comidas: day.comidas.map(meal => {
+      const p = Math.round(totalProt * (meal.pRatio / (day.comidas.reduce((s, m) => s + m.pRatio, 0))));
+      const c = Math.round(totalCarb * (meal.cRatio / (day.comidas.reduce((s, m) => s + m.cRatio, 0))));
+      const f = Math.round(totalFat * (meal.fRatio / (day.comidas.reduce((s, m) => s + m.fRatio, 0))));
+      
       return {
         nombre: meal.nombre,
         detalles: meal.detalles,
         preparacion: meal.preparacion,
-        calorias: Math.round(caloriasObjetivo * meal.calRatio),
-        proteinas: Math.round(totalProt * (meal.pRatio / (day.comidas.reduce((s, m) => s + m.pRatio, 0)))),
-        carbohidratos: Math.round(totalCarb * (meal.cRatio / (day.comidas.reduce((s, m) => s + m.cRatio, 0)))),
-        grasas: Math.round(totalFat * (meal.fRatio / (day.comidas.reduce((s, m) => s + m.fRatio, 0)))),
+        proteinas: p,
+        carbohidratos: c,
+        grasas: f,
+        calorias: (p * 4) + (c * 4) + (f * 9),
       };
     })
   }));

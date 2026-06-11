@@ -70,13 +70,13 @@ export default function NutritionSummary({ user, selectedDate }: NutritionSummar
 
   const target = calcMacros();
 
-  const ProgressBar = ({ label, current, max, color, icon: Icon }: any) => {
+  const ProgressBar = ({ label, current, max, textColor, bgColor, icon: Icon }: any) => {
     const percentage = Math.min(Math.round((current / max) * 100), 100) || 0;
     return (
       <div className="flex flex-col gap-1">
         <div className="flex justify-between items-center text-xs">
-          <span className="flex items-center gap-1 font-bold text-text-muted">
-            <Icon size={12} className={color} /> {label}
+          <span className={`flex items-center gap-1 font-bold text-text-muted`}>
+            <Icon size={12} className={textColor} /> {label}
           </span>
           <span className="font-medium text-text-main tabular-nums">
             {Math.round(current)} / {max}g
@@ -84,7 +84,7 @@ export default function NutritionSummary({ user, selectedDate }: NutritionSummar
         </div>
         <div className="h-2 w-full bg-surface rounded-full overflow-hidden">
           <div 
-            className={cn("h-full rounded-full transition-all duration-700 ease-out", color.replace('text-', 'bg-'))}
+            className={cn("h-full rounded-full transition-all duration-700 ease-out", bgColor)}
             style={{ width: `${percentage}%` }}
           />
         </div>
@@ -112,9 +112,9 @@ export default function NutritionSummary({ user, selectedDate }: NutritionSummar
       </div>
 
       <div className="space-y-4">
-        <ProgressBar label="Proteínas" current={consumed.prot} max={target.prot} color="text-blue-500" icon={Beef} />
-        <ProgressBar label="Carbohidratos" current={consumed.carb} max={target.carb} color="text-amber-500" icon={Wheat} />
-        <ProgressBar label="Grasas" current={consumed.fat} max={target.fat} color="text-rose-500" icon={Droplet} />
+        <ProgressBar label="Proteínas" current={consumed.prot} max={target.prot} textColor="text-blue-500" bgColor="bg-blue-500" icon={Beef} />
+        <ProgressBar label="Carbohidratos" current={consumed.carb} max={target.carb} textColor="text-amber-500" bgColor="bg-amber-500" icon={Wheat} />
+        <ProgressBar label="Grasas" current={consumed.fat} max={target.fat} textColor="text-rose-500" bgColor="bg-rose-500" icon={Droplet} />
       </div>
     </div>
   );

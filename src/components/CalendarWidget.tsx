@@ -24,17 +24,19 @@ interface CalendarWidgetProps {
 
 export default function CalendarWidget({ selectedDate, onChangeDate, workoutDates, calendarData }: CalendarWidgetProps) {
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(selectedDate));
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [view, setView] = useState<'week' | 'two-weeks' | 'month'>('week');
 
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
 
   // Determine date range to show
-  const startDate = isExpanded 
+  const startDate = view === 'month' 
     ? startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 })
-    : startOfWeek(subWeeks(selectedDate, 1), { weekStartsOn: 1 });
+    : view === 'two-weeks'
+    ? startOfWeek(subWeeks(selectedDate, 1), { weekStartsOn: 1 })
+    : startOfWeek(selectedDate, { weekStartsOn: 1 });
     
-  const endDate = isExpanded
+  const endDate = view === 'month'
     ? endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 })
     : endOfWeek(selectedDate, { weekStartsOn: 1 });
 
@@ -44,7 +46,7 @@ export default function CalendarWidget({ selectedDate, onChangeDate, workoutDate
   let day = startDate;
   let formattedDate = "";
 
-  const displayMonth = isExpanded ? currentMonth : selectedDate;
+  const displayMonth = view === 'month' ? currentMonth : selectedDate;
 
   while (day <= endDate) {
     for (let i = 0; i < 7; i++) {
@@ -60,7 +62,7 @@ export default function CalendarWidget({ selectedDate, onChangeDate, workoutDate
       let numberClass = '';
       let bgClass = '';
       
-      if (!isSelected && (isCurrentMonth || !isExpanded)) {
+      if (!isSelected && (isCurrentMonth || view !== 'month')) {
         const dietGood = (calStatus === 'met');
         const exerciseDone = hasWorkout;
 
@@ -85,7 +87,7 @@ export default function CalendarWidget({ selectedDate, onChangeDate, workoutDate
       if (isSelected) {
         numberClass = 'text-white font-black';
         bgClass = 'bg-primary shadow-lg shadow-primary/30';
-      } else if (!isCurrentMonth && isExpanded) {
+      } else if (!isCurrentMonth && view === 'month') {
         numberClass = 'text-text-muted/30';
       } else if (isToday && !isSelected && !bgClass) {
          bgClass = 'border border-primary/50';
@@ -133,7 +135,7 @@ export default function CalendarWidget({ selectedDate, onChangeDate, workoutDate
   return (
     <div className="bg-surface/80 backdrop-blur-md rounded-3xl p-4 border border-border/50 shadow-xl w-full">
       <div className="flex items-center justify-between mb-4 px-2">
-        {isExpanded ? (
+        {view === 'month' ? (
           <button onClick={prevMonth} className="p-2 rounded-xl hover:bg-surface-hover transition-colors text-text-muted hover:text-text-main">
             <ChevronLeft size={20} />
           </button>
@@ -141,7 +143,7 @@ export default function CalendarWidget({ selectedDate, onChangeDate, workoutDate
         <span className="text-sm font-black capitalize tracking-wide text-text-main">
           {format(displayMonth, 'MMMM yyyy', { locale: es })}
         </span>
-        {isExpanded ? (
+        {view === 'month' ? (
           <button onClick={nextMonth} className="p-2 rounded-xl hover:bg-surface-hover transition-colors text-text-muted hover:text-text-main">
             <ChevronRight size={20} />
           </button>
@@ -162,16 +164,24 @@ export default function CalendarWidget({ selectedDate, onChangeDate, workoutDate
 
       <div className="flex justify-center mt-3 border-t border-border/30 pt-2">
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={() => {
+            if (view === 'week') setView('two-weeks');
+            else if (view === 'two-weeks') setView('month');
+            else setView('week');
+          }}
           className="text-[10px] uppercase font-black tracking-wider text-text-muted hover:text-text-main flex items-center gap-1.5 transition-colors focus:outline-none"
         >
-          {isExpanded ? (
+          {view === 'month' ? (
             <>
-              <ChevronUp size={12} /> Ver menos
+              <ChevronUp size={12} /> Ver 1 semana
+            </>
+          ) : view === 'two-weeks' ? (
+            <>
+              <ChevronDown size={12} /> Ver mes completo
             </>
           ) : (
             <>
-              <ChevronDown size={12} /> Ver mes completo
+              <ChevronDown size={12} /> Ver 2 semanas
             </>
           )}
         </button>

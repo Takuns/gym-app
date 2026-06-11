@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { pb } from '../lib/pocketbase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -61,7 +61,7 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
     }
   }, [refreshTrigger]);
 
-  const triggerRefresh = () => setRefreshTrigger(prev => prev + 1);
+  const triggerRefresh = useCallback(() => setRefreshTrigger(prev => prev + 1), []);
 
   // Scroll to top when selected date changes
   useEffect(() => {

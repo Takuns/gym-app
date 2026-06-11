@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { pb } from '../lib/pocketbase';
 import { Trash2, Sparkles, RefreshCw, GripVertical } from 'lucide-react';
 import { analyzeFoodText } from '../lib/geminiService';
@@ -62,6 +62,11 @@ export default function DailyLog({ user, selectedDate, forceOpenFormTrigger, onF
     }
   };
 
+  const onFoodAddedRef = useRef(onFoodAdded);
+  useEffect(() => {
+    onFoodAddedRef.current = onFoodAdded;
+  }, [onFoodAdded]);
+
   useEffect(() => {
     fetchTodayMeals();
 
@@ -72,14 +77,14 @@ export default function DailyLog({ user, selectedDate, forceOpenFormTrigger, onF
     pb.collection('comidas_diarias').subscribe('*', function (e) {
       if (e.record.usuario === user.id) {
         fetchTodayMeals();
-        if (onFoodAdded) onFoodAdded();
+        if (onFoodAddedRef.current) onFoodAddedRef.current();
       }
     });
 
     return () => {
       pb.collection('comidas_diarias').unsubscribe('*');
     };
-  }, [user.id, selectedDate, onFoodAdded]);
+  }, [user.id, selectedDate]);
 
   const handleAnalyzeFood = async () => {
     if (!geminiApiKey || !aiDescription.trim()) return;
@@ -128,7 +133,7 @@ export default function DailyLog({ user, selectedDate, forceOpenFormTrigger, onF
       setFormData({ nombre_comida: 'Desayuno', detalles: '', calorias: '', proteinas: '', carbohidratos: '', grasas: '' });
       setShowForm(false);
       await fetchTodayMeals();
-      if (onFoodAdded) onFoodAdded();
+      if (onFoodAddedRef.current) onFoodAddedRef.current();
     } catch (err) {
       console.error(err);
     }
@@ -138,7 +143,7 @@ export default function DailyLog({ user, selectedDate, forceOpenFormTrigger, onF
     try {
       await pb.collection('comidas_diarias').delete(id);
       await fetchTodayMeals();
-      if (onFoodAdded) onFoodAdded();
+      if (onFoodAddedRef.current) onFoodAddedRef.current();
     } catch (err) {
       console.error(err);
     }
@@ -159,7 +164,7 @@ export default function DailyLog({ user, selectedDate, forceOpenFormTrigger, onF
       await Promise.all(
         updated.map((meal, idx) => pb.collection('comidas_diarias').update(meal.id, { orden: idx }))
       );
-      if (onFoodAdded) onFoodAdded();
+      if (onFoodAddedRef.current) onFoodAddedRef.current();
     } catch (err) {
       console.error(err);
       fetchTodayMeals();

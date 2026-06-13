@@ -70,22 +70,22 @@ export default function ExerciseDetailsModal({ ejercicio, onClose }: ExerciseDet
     const fetchHistory = async () => {
       try {
         const records = await pb.collection('historial_series').getFullList({
-          filter: `ejercicio = "${ejercicio.id}" && completado = true`,
+          filter: `ejercicio_diario.nombre = "${ejercicio.nombre}" && completado = true`,
           sort: '+created',
         });
 
         // Agrupar por fecha y obtener el máximo valor
-        const agg: Record<string, number> = {};
+        const agg: Record<string, { peso: number, reps: number, tiempo: number }> = {};
         records.forEach(r => {
           // PB date format: "2023-10-25 10:00:00.000Z"
           const dateStr = r.created.split(' ')[0];
-          const val = ejercicio.es_tiempo ? r.tiempo_logrado : r.peso_real;
           
-          if (val) {
-            if (!agg[dateStr] || val > agg[dateStr]) {
-              agg[dateStr] = val;
-            }
+          if (!agg[dateStr]) {
+            agg[dateStr] = { peso: 0, reps: 0, tiempo: 0 };
           }
+          if (r.peso_real > agg[dateStr].peso) agg[dateStr].peso = r.peso_real;
+          if (r.repeticiones_reales > agg[dateStr].reps) agg[dateStr].reps = r.repeticiones_reales;
+          if (r.tiempo_logrado > agg[dateStr].tiempo) agg[dateStr].tiempo = r.tiempo_logrado;
         });
 
         const data = Object.keys(agg).map(dateStr => {
@@ -93,7 +93,9 @@ export default function ExerciseDetailsModal({ ejercicio, onClose }: ExerciseDet
           return {
             rawDate: dateStr,
             displayDate: format(dateObj, 'd MMM', { locale: es }),
-            valor: agg[dateStr]
+            peso: agg[dateStr].peso,
+            reps: agg[dateStr].reps,
+            tiempo: agg[dateStr].tiempo
           };
         });
 
@@ -175,6 +177,7 @@ export default function ExerciseDetailsModal({ ejercicio, onClose }: ExerciseDet
                       dy={10}
                     />
                     <YAxis 
+                      yAxisId="left"
                       stroke="#94a3b8" 
                       fontSize={12} 
                       tickLine={false}
@@ -182,22 +185,50 @@ export default function ExerciseDetailsModal({ ejercicio, onClose }: ExerciseDet
                       dx={-10}
                       tickFormatter={(val) => ejercicio.es_tiempo ? `${val}s` : `${val}kg`}
                     />
+                    {!ejercicio.es_tiempo && (
+                      <YAxis 
+                        yAxisId="right"
+                        orientation="right"
+                        stroke="#10b981" 
+                        fontSize={12} 
+                        tickLine={false}
+                        axisLine={false}
+                        dx={10}
+                        tickFormatter={(val) => `${val} r`}
+                      />
+                    )}
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#f8fafc' }}
-                      itemStyle={{ color: '#3b82f6', fontWeight: 'bold' }}
-                      formatter={(value: any) => [
-                        ejercicio.es_tiempo ? `${value} segundos` : `${value} kg`, 
-                        'Máximo'
-                      ]}
+                      itemStyle={{ fontWeight: 'bold' }}
+                      formatter={(value: any, name: string) => {
+                        if (name === "Tiempo") return [`${value} segundos`, "Máximo"];
+                        if (name === "Peso") return [`${value} kg`, "Peso"];
+                        if (name === "Reps") return [`${value} repeticiones`, "Reps"];
+                        return [value, name];
+                      }}
                     />
                     <Line 
+                      yAxisId="left"
                       type="monotone" 
-                      dataKey="valor" 
+                      dataKey={ejercicio.es_tiempo ? "tiempo" : "peso"} 
+                      name={ejercicio.es_tiempo ? "Tiempo" : "Peso"}
                       stroke="#3b82f6" 
                       strokeWidth={3}
                       dot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }}
                       activeDot={{ r: 6, fill: '#60a5fa', stroke: '#1e3a8a', strokeWidth: 2 }}
                     />
+                    {!ejercicio.es_tiempo && (
+                      <Line 
+                        yAxisId="right"
+                        type="monotone" 
+                        dataKey="reps" 
+                        name="Reps"
+                        stroke="#10b981" 
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: '#10b981', strokeWidth: 0 }}
+                        activeDot={{ r: 6, fill: '#34d399', stroke: '#064e3b', strokeWidth: 2 }}
+                      />
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               ) : (

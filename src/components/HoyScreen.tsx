@@ -68,6 +68,7 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
   // Scroll to top when selected date changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    setLoading(true);
   }, [selectedDate]);
 
   // 1. Fetch user once on mount
@@ -90,7 +91,6 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
     let active = true;
 
     const fetchAllData = async () => {
-      setLoading(true);
       try {
         const startOfDay = format(selectedDate, 'yyyy-MM-dd') + ' 00:00:00.000Z';
         const endOfDay = format(selectedDate, 'yyyy-MM-dd') + ' 23:59:59.999Z';

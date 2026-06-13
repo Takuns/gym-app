@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { pb } from '../lib/pocketbase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Dumbbell, Flame, Utensils, Zap, Play, Coffee, Plus, Sparkles, RefreshCw, ChevronDown, ChevronUp, Beef, Wheat, Droplet, Activity } from 'lucide-react';
+import { Dumbbell, Flame, Utensils, Zap, Coffee, Plus, Sparkles, RefreshCw, ChevronDown, ChevronUp, Beef, Wheat, Droplet, Activity } from 'lucide-react';
 
 import CalendarWidget from './CalendarWidget';
 import DailyLog from './DailyLog';
@@ -247,7 +247,7 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
   const sportsCalories = sports.reduce((acc, s) => acc + (s.calorias_quemadas || 0), 0);
   
   // Estimation: Removed useMemo, using exact calories from DB
-  const [gymCalories, setGymCalories] = useState(0);
+  // const [gymCalories, setGymCalories] = useState(0); // REMOVED duplicate
 
   // const totalBurned = bmr + sportsCalories + gymCalories;
   // const balance = foodCalories - totalBurned;

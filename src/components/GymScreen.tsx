@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Plus, FolderOpen, CalendarPlus, X, Image as ImageIcon } from 'lucide-react';
+import { Calendar, FolderOpen } from 'lucide-react';
 import TemplatesModal from './TemplatesModal';
 import { pb } from '../lib/pocketbase';
 
@@ -7,15 +7,8 @@ interface GymScreenProps {}
 
 export default function GymScreen({}: GymScreenProps) {
   const [user, setUser] = useState<any>(null);
-  const [plantillas, setPlantillas] = useState<any[]>([]);
-  const [ejerciciosMap, setEjerciciosMap] = useState<Record<string, any[]>>({});
-  const [loading, setLoading] = useState(true);
-  
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  // Selector modal
-  const [showAssignModal, setShowAssignModal] = useState<string | null>(null);
 
   const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -33,43 +26,6 @@ export default function GymScreen({}: GymScreenProps) {
       }
     };
     fetchUser();
-  }, []);
-
-  // Fetch plantillas
-  useEffect(() => {
-    const fetchPlantillas = async () => {
-      setLoading(true);
-      try {
-        const records = await pb.collection('plantillas_rutinas').getFullList({
-          sort: '-created',
-        });
-        setPlantillas(records);
-
-        if (records.length > 0) {
-          const filterQuery = records.map(r => `plantilla = "${r.id}"`).join(' || ');
-          const ejerciciosRecords = await pb.collection('ejercicios_plantilla').getFullList({
-            filter: filterQuery,
-            sort: 'orden,created'
-          });
-
-          const map: Record<string, any[]> = {};
-          ejerciciosRecords.forEach(ej => {
-            if (!map[ej.plantilla]) {
-              map[ej.plantilla] = [];
-            }
-            map[ej.plantilla].push(ej);
-          });
-          setEjerciciosMap(map);
-        } else {
-          setEjerciciosMap({});
-        }
-      } catch (err) {
-        console.error('Error fetching plantillas', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPlantillas();
   }, [refreshTrigger]);
 
   const toggleTrainingDay = async (day: string) => {

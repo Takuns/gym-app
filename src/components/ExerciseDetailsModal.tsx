@@ -200,7 +200,7 @@ export default function ExerciseDetailsModal({ ejercicio, onClose }: ExerciseDet
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '12px', color: '#f8fafc' }}
                       itemStyle={{ fontWeight: 'bold' }}
-                      formatter={(value: any, name: string) => {
+                      formatter={(value: any, name: any) => {
                         if (name === "Tiempo") return [`${value} segundos`, "Máximo"];
                         if (name === "Peso") return [`${value} kg`, "Peso"];
                         if (name === "Reps") return [`${value} repeticiones`, "Reps"];

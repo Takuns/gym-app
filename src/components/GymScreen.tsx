@@ -72,28 +72,22 @@ export default function GymScreen({}: GymScreenProps) {
     fetchPlantillas();
   }, [refreshTrigger]);
 
-  const toggleDayForTemplate = async (plantillaId: string, day: string, action: 'add' | 'remove') => {
+  const toggleTrainingDay = async (day: string) => {
+    if (!user) return;
     try {
-      const plantilla = plantillas.find(p => p.id === plantillaId);
-      if (!plantilla) return;
-      
-      let diasActivos: string[] = Array.isArray(plantilla.dias_semana) ? plantilla.dias_semana : [];
-      
-      if (action === 'add' && !diasActivos.includes(day)) {
-        diasActivos.push(day);
-      } else if (action === 'remove') {
+      let diasActivos: string[] = Array.isArray(user.dias_entrenamiento) ? user.dias_entrenamiento : [];
+      if (diasActivos.includes(day)) {
         diasActivos = diasActivos.filter(d => d !== day);
+      } else {
+        diasActivos.push(day);
       }
-
-      await pb.collection('plantillas_rutinas').update(plantillaId, {
-        dias_semana: diasActivos
+      const updatedUser = await pb.collection('usuarios').update(user.id, {
+        dias_entrenamiento: diasActivos
       });
-      
-      triggerRefresh();
-      setShowAssignModal(null);
+      setUser(updatedUser);
     } catch (err) {
       console.error(err);
-      alert("Error al actualizar la agenda.");
+      alert("Error al actualizar días de entrenamiento.");
     }
   };
 
@@ -116,76 +110,41 @@ export default function GymScreen({}: GymScreenProps) {
         </div>
 
         <p className="text-xs text-text-muted leading-relaxed">
-          Asigna tus plantillas de entrenamiento a los días de la semana. Se activarán automáticamente en la pestaña "Hoy".
+          Marca los días de la semana en los que quieres entrenar. Te lo recordaremos en la pestaña "Hoy".
         </p>
       </header>
 
       <main className="p-4 mt-2 space-y-4">
-        {loading ? (
+        {!user ? (
           <div className="flex justify-center items-center py-20">
             <div className="w-10 h-10 rounded-full border-4 border-surface border-t-primary animate-spin" />
           </div>
         ) : (
-          <div className="space-y-4">
-            {DIAS_SEMANA.map(dia => {
-              const plantillasDelDia = plantillas.filter(p => {
-                const dias = Array.isArray(p.dias_semana) ? p.dias_semana : [];
-                return dias.includes(dia);
-              });
-
-              return (
-                <div key={dia} className="glass-panel p-4 overflow-hidden relative group">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-white text-lg capitalize">{dia}</h3>
-                    <button 
-                      onClick={() => setShowAssignModal(dia)}
-                      className="p-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
-                      title={`Asignar rutina el ${dia}`}
-                    >
-                      <Plus size={18} />
-                    </button>
-                  </div>
-
-                  {plantillasDelDia.length > 0 && (
-                    <div className="space-y-2">
-                      {plantillasDelDia.map(p => (
-                        <div key={p.id} className="bg-surface border border-border/40 rounded-xl p-3 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-sm text-text-main">{p.nombre}</span>
-                            <button 
-                              onClick={() => toggleDayForTemplate(p.id, dia, 'remove')}
-                              className="p-1 text-text-muted hover:text-danger transition-colors"
-                              title="Quitar de este día"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-                          
-                          {/* Miniaturas de ejercicios */}
-                          {ejerciciosMap[p.id] && ejerciciosMap[p.id].length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 pt-1">
-                              {ejerciciosMap[p.id].map(ej => (
-                                <div 
-                                  key={ej.id} 
-                                  className="w-8 h-8 rounded-lg overflow-hidden bg-white/5 flex items-center justify-center shrink-0 border border-border/30"
-                                  title={ej.nombre}
-                                >
-                                  {ej.imagen_url ? (
-                                    <img src={ej.imagen_url} alt={ej.nombre} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <ImageIcon size={14} className="text-text-muted/40" />
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
+          <div className="glass-panel p-4 space-y-4">
+            <h3 className="font-bold text-white text-lg flex items-center gap-2">
+              Días de Entrenamiento
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              {DIAS_SEMANA.map(dia => {
+                const isActive = Array.isArray(user.dias_entrenamiento) && user.dias_entrenamiento.includes(dia);
+                return (
+                  <button
+                    key={dia}
+                    onClick={() => toggleTrainingDay(dia)}
+                    className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                      isActive 
+                        ? 'bg-primary/10 border-primary text-white' 
+                        : 'bg-surface border-border/50 text-text-muted hover:bg-surface-hover'
+                    }`}
+                  >
+                    <span className="font-bold text-sm capitalize">{dia}</span>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isActive ? 'border-primary bg-primary' : 'border-border'}`}>
+                      {isActive && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </main>
@@ -196,42 +155,6 @@ export default function GymScreen({}: GymScreenProps) {
           onClose={() => setShowTemplatesModal(false)}
           onTemplateUpdated={triggerRefresh}
         />
-      )}
-      {/* Select Template Modal */}
-      {showAssignModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-surface-hover w-full max-w-sm rounded-3xl border border-border/50 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="p-5 border-b border-border/50 flex items-center justify-between bg-surface/50">
-              <h3 className="font-bold text-white flex items-center gap-2">
-                <CalendarPlus className="text-primary" size={20} />
-                Rutinas para {showAssignModal}
-              </h3>
-              <button onClick={() => setShowAssignModal(null)} className="text-text-muted hover:text-white">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-5 space-y-3 max-h-[60vh] overflow-y-auto">
-              {plantillas.length === 0 ? (
-                <p className="text-sm text-text-muted text-center py-4">No tienes plantillas creadas.</p>
-              ) : (
-                plantillas.map(p => {
-                  const isActive = Array.isArray(p.dias_semana) && p.dias_semana.includes(showAssignModal);
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => toggleDayForTemplate(p.id, showAssignModal, 'add')}
-                      disabled={isActive}
-                      className={`w-full text-left px-4 py-3 rounded-xl border ${isActive ? 'border-primary bg-primary/10 opacity-50 cursor-not-allowed' : 'border-border/50 bg-surface hover:border-primary/50'}`}
-                    >
-                      <div className="font-bold text-sm text-white">{p.nombre}</div>
-                      {isActive && <div className="text-[10px] text-primary mt-1">Ya asignada a este día</div>}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

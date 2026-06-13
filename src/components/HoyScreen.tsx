@@ -10,6 +10,7 @@ import ExerciseCard from './ExerciseCard';
 import FloatingRestTimer, { cn } from './FloatingRestTimer';
 import AddSportModal from './AddSportModal';
 import AddManualCaloriesModal from './AddManualCaloriesModal';
+import AddWorkoutModal from './AddWorkoutModal';
 import { generateWeeklyDiet } from '../lib/dietAlgorithm';
 import { regenerateSingleMeal } from '../lib/geminiService';
 
@@ -29,8 +30,8 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
   // Gym states
   const [dailyWorkout, setDailyWorkout] = useState<any>(null);
   const [ejercicios, setEjercicios] = useState<any[]>([]);
-  const [scheduledTemplate, setScheduledTemplate] = useState<any>(null);
-  const [isGeneratingRoutine, setIsGeneratingRoutine] = useState(false);
+  const [gymCalories, setGymCalories] = useState<number>(0);
+  const [showAddWorkout, setShowAddWorkout] = useState(false);
   const [timerActive, setTimerActive] = useState(false);
   const [currentRestTime, setCurrentRestTime] = useState(90);
 
@@ -156,7 +157,6 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
 
         let todayWorkout = null;
         let todayEjercicios: any[] = [];
-        let schedTemplate = null;
 
         if (recordsWorkout.length > 0) {
           todayWorkout = recordsWorkout[0];
@@ -168,19 +168,6 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
             todayEjercicios = exRecords;
           } catch (e) {
             console.error("Error fetching ejercicios_diarios:", e);
-          }
-        } else {
-          // Check if there is a scheduled template
-          const dayName = format(selectedDate, 'EEEE', { locale: es });
-          const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
-          try {
-            const plantillas = await pb.collection('plantillas_rutinas').getFullList();
-            schedTemplate = plantillas.find(p => {
-               const dias = Array.isArray(p.dias_semana) ? p.dias_semana : [];
-               return dias.includes(capitalizedDay);
-            }) || null;
-          } catch (e) {
-            console.error("Error fetching plantillas_rutinas:", e);
           }
         }
 
@@ -202,10 +189,6 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
              else if (c < 1000) calStatus[d] = { status: 'short' }; // Likely incomplete log
              else calStatus[d] = { status: 'met' };
           });
-          
-          console.log("DEBUG: mealsForCalendar", mealsForCalendar);
-          console.log("DEBUG: calByDate", calByDate);
-          console.log("DEBUG: calStatus", calStatus);
           
           const dates = recordsSeries.map(r => r.created.split(' ')[0]);
           allDeportes.forEach(d => {
@@ -230,7 +213,6 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
           setConsumedMacros(sumComidas);
           setDailyWorkout(todayWorkout);
           setEjercicios(todayEjercicios);
-          setScheduledTemplate(schedTemplate);
         }
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -246,46 +228,6 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
       active = false;
     };
   }, [user, selectedDate, refreshTrigger]);
-
-  // Generar entrenamiento desde plantilla
-  const handleGenerateWorkout = async () => {
-    if (!scheduledTemplate || !user) return;
-    setIsGeneratingRoutine(true);
-    try {
-      // Create daily workout
-      const nuevoEntrenamiento = await pb.collection('entrenamientos_diarios').create({
-        usuario: user.id,
-        fecha: format(selectedDate, 'yyyy-MM-dd') + 'T12:00:00.000Z',
-        nombre: scheduledTemplate.nombre,
-        plantilla_origen: scheduledTemplate.id
-      });
-
-      // Copy exercises
-      const ejerciciosPlantilla = await pb.collection('ejercicios_plantilla').getFullList({
-        filter: `plantilla = "${scheduledTemplate.id}"`
-      });
-
-      for (const ej of ejerciciosPlantilla) {
-        await pb.collection('ejercicios_diarios').create({
-          entrenamiento: nuevoEntrenamiento.id,
-          nombre: ej.nombre,
-          series_objetivo: ej.series_objetivo,
-          repeticiones_objetivo: ej.repeticiones_objetivo,
-          es_tiempo: ej.es_tiempo,
-          descripcion: ej.descripcion,
-          tiempo_reposo: ej.tiempo_reposo,
-          plantilla_origen_ejercicio: ej.id
-        });
-      }
-
-      triggerRefresh();
-    } catch (err) {
-      console.error(err);
-      alert("Error al generar la rutina.");
-    } finally {
-      setIsGeneratingRoutine(false);
-    }
-  };
 
   const handleSetCompleted = (time?: number) => {
     const finalTime = time || user?.tiempo_reposo_general || 90;
@@ -705,42 +647,45 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
            <div className="flex justify-center items-center py-4">
              <div className="w-5 h-5 rounded-full border-2 border-surface border-t-primary animate-spin" />
            </div>
-        ) : dailyWorkout || scheduledTemplate ? (
+        ) : dailyWorkout ? (
           <section className="space-y-2">
             <h2 className="text-base font-bold text-text-main flex items-center gap-2 px-1">
               <Dumbbell className="text-primary" size={16} /> Entrenamiento
             </h2>
 
-            {dailyWorkout ? (
-              <div className="space-y-3">
-                <div className="glass-panel border-primary/20 bg-primary/5 p-3 flex justify-between items-center">
-                  <div>
-                    <span className="text-[9px] uppercase font-black text-primary bg-primary/15 px-2 py-0.5 rounded-md">Activo</span>
-                    <h3 className="text-sm font-extrabold text-white mt-1">{dailyWorkout.nombre}</h3>
-                  </div>
+            <div className="space-y-3">
+              <div className="glass-panel border-primary/20 bg-primary/5 p-3 flex justify-between items-center">
+                <div>
+                  <span className="text-[9px] uppercase font-black text-primary bg-primary/15 px-2 py-0.5 rounded-md">Activo</span>
+                  <h3 className="text-sm font-extrabold text-white mt-1">{dailyWorkout.nombre}</h3>
                 </div>
-                
-                {ejercicios.map(ej => (
-                  <ExerciseCard key={ej.id} ejercicio={ej} onSetCompleted={handleSetCompleted} />
-                ))}
               </div>
-            ) : (
-              <div className="glass-panel p-4 space-y-3 text-center">
-                <h3 className="text-sm font-black text-white">{scheduledTemplate.nombre}</h3>
-                <button
-                  onClick={handleGenerateWorkout}
-                  disabled={isGeneratingRoutine}
-                  className="w-full py-2 bg-primary hover:bg-primary-hover disabled:bg-surface text-white text-xs font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all"
-                >
-                  {isGeneratingRoutine ? 'Generando...' : <><Play size={14} /> Comenzar</>}
-                </button>
-              </div>
-            )}
+              
+              {ejercicios.map(ej => (
+                <ExerciseCard key={ej.id} ejercicio={ej} onSetCompleted={handleSetCompleted} />
+              ))}
+            </div>
           </section>
         ) : (
-          <div className="flex flex-col items-center justify-center py-6 opacity-40">
-             <Coffee size={28} className="text-text-muted mb-2" />
-             <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Día de descanso</p>
+          <div className="flex flex-col items-center justify-center py-6 opacity-60">
+             {(() => {
+               const dayName = format(selectedDate, 'EEEE', { locale: es });
+               const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+               const isTrainingDay = Array.isArray(user?.dias_entrenamiento) && user.dias_entrenamiento.includes(capitalizedDay);
+               
+               return isTrainingDay ? (
+                 <>
+                   <Dumbbell size={28} className="text-primary mb-2" />
+                   <p className="text-xs font-bold text-center text-white mb-1">Día de entrenamiento</p>
+                   <p className="text-[10px] text-text-muted text-center px-4">Pulsa el botón "+" para añadir una rutina.</p>
+                 </>
+               ) : (
+                 <>
+                   <Coffee size={28} className="text-text-muted mb-2" />
+                   <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Día de descanso</p>
+                 </>
+               );
+             })()}
           </div>
         )}
       </main>
@@ -749,6 +694,13 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
       <div className="fixed bottom-24 right-4 z-50 flex flex-col items-end gap-3">
         {isFabOpen && (
           <>
+            <button
+              onClick={() => { setShowAddWorkout(true); setIsFabOpen(false); }}
+              className="flex items-center gap-3 bg-surface border border-border/50 text-white font-bold text-xs py-2 px-4 rounded-full shadow-lg hover:bg-surface-hover animate-in slide-in-from-bottom-1 duration-200"
+            >
+              <span>Añadir Entrenamiento</span>
+              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500"><Dumbbell size={14} /></div>
+            </button>
             <button
               onClick={() => { setShowAddSport(true); setIsFabOpen(false); }}
               className="flex items-center gap-3 bg-surface border border-border/50 text-white font-bold text-xs py-2 px-4 rounded-full shadow-lg hover:bg-surface-hover animate-in slide-in-from-bottom-2 duration-200"
@@ -787,6 +739,9 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
       )}
       {showAddManualCalories && user && (
         <AddManualCaloriesModal user={user} date={selectedDate} onClose={() => setShowAddManualCalories(false)} onAdded={triggerRefresh} />
+      )}
+      {showAddWorkout && user && (
+        <AddWorkoutModal user={user} date={selectedDate} onClose={() => setShowAddWorkout(false)} onWorkoutAdded={triggerRefresh} />
       )}
     </div>
   );

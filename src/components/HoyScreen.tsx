@@ -110,7 +110,7 @@ export default function HoyScreen({ selectedDate, setSelectedDate }: HoyScreenPr
         let recordsSeries: any[] = [];
         try {
           recordsSeries = await pb.collection('historial_series').getFullList({
-            filter: `completado = true`,
+            filter: `ejercicio_diario.entrenamiento.usuario = "${user.id}" && completado = true`,
             sort: '-created'
           });
         } catch (e) {

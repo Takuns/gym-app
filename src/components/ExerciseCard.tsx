@@ -74,6 +74,7 @@ export default function ExerciseCard({ ejercicio, onSetCompleted }: ExerciseCard
                     key={i}
                     ejercicioId={ejercicio.id} 
                     numeroSerie={i + 1}
+                    onComplete={onSetCompleted}
                   />
                 ) : (
                   <SetRow 

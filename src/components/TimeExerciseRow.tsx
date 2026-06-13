@@ -6,9 +6,10 @@ import { pb } from '../lib/pocketbase';
 interface TimeExerciseRowProps {
   ejercicioId: string;
   numeroSerie: number;
+  onComplete?: (time?: number) => void;
 }
 
-export default function TimeExerciseRow({ ejercicioId, numeroSerie }: TimeExerciseRowProps) {
+export default function TimeExerciseRow({ ejercicioId, numeroSerie, onComplete }: TimeExerciseRowProps) {
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [completed, setCompleted] = useState(false);
@@ -23,21 +24,33 @@ export default function TimeExerciseRow({ ejercicioId, numeroSerie }: TimeExerci
       }
       interval = window.setInterval(() => {
         if (startTimeRef.current) {
-          const newTime = Math.floor((Date.now() - startTimeRef.current) / 1000);
-          setTimeElapsed(newTime);
+          setTimeElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
         }
-      }, 100);
+      }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isRunning, timeElapsed]);
+  }, [isRunning]);
+
+  useEffect(() => {
+    const fetchRecord = async () => {
+      try {
+        const records = await pb.collection('historial_series').getFullList({
+          filter: `ejercicio_diario = "${ejercicioId}" && numero_serie = ${numeroSerie}`,
+          sort: '-created',
+        });
+        if (records.length > 0) {
+          setCompleted(true);
+          setTimeElapsed(records[0].tiempo_logrado || 0);
+        }
+      } catch (err) {
+        console.error('Error fetching set record', err);
+      }
+    };
+    fetchRecord();
+  }, [ejercicioId, numeroSerie]);
 
   const toggleTimer = () => {
-    if (isRunning) {
-      setIsRunning(false);
-      startTimeRef.current = null;
-    } else {
-      setIsRunning(true);
-    }
+    setIsRunning(!isRunning);
   };
 
   const resetTimer = () => {
@@ -53,15 +66,21 @@ export default function TimeExerciseRow({ ejercicioId, numeroSerie }: TimeExerci
     try {
       // Calculate calories
       let calorias_quemadas = 0;
+      let tiempoReposo = 90;
       try {
         const userRecords = await pb.collection('usuarios').getFullList();
         const user = userRecords[0];
         const ejDiario = await pb.collection('ejercicios_diarios').getOne(ejercicioId);
         
-        if (user && ejDiario && ejDiario.met_value > 0) {
-          const pesoUsuario = user.peso_actual || 70;
-          const tiempoActivoHoras = timeElapsed / 3600; 
-          calorias_quemadas = parseFloat((ejDiario.met_value * pesoUsuario * tiempoActivoHoras).toFixed(2));
+        if (user) {
+          if (user.tiempo_reposo_general) {
+            tiempoReposo = user.tiempo_reposo_general;
+          }
+          if (ejDiario && ejDiario.met_value > 0) {
+            const pesoUsuario = user.peso_actual || 70;
+            const tiempoActivoHoras = timeElapsed / 3600; 
+            calorias_quemadas = parseFloat((ejDiario.met_value * pesoUsuario * tiempoActivoHoras).toFixed(2));
+          }
         }
       } catch (calErr) {
         console.error("Error calculating calories", calErr);
@@ -75,6 +94,9 @@ export default function TimeExerciseRow({ ejercicioId, numeroSerie }: TimeExerci
         calorias_quemadas
       });
       setCompleted(true);
+      if (onComplete) {
+        onComplete(tiempoReposo);
+      }
     } catch (err) {
       console.error(err);
     } finally {

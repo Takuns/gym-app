@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp, Info, CheckCircle2 } from 'lucide-react';
 import SetRow from './SetRow';
 import TimeExerciseRow from './TimeExerciseRow';
 import ExerciseDetailsModal from './ExerciseDetailsModal';
 import { cn } from './FloatingRestTimer';
+import { pb } from '../lib/pocketbase';
 
 interface ExerciseCardProps {
   ejercicio: {
@@ -22,10 +23,42 @@ interface ExerciseCardProps {
 export default function ExerciseCard({ ejercicio, onSetCompleted }: ExerciseCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [isFullyCompleted, setIsFullyCompleted] = useState(false);
+  const [completedCount, setCompletedCount] = useState(0);
+
+  const checkCompletion = async () => {
+    try {
+      const records = await pb.collection('historial_series').getFullList({
+        filter: `ejercicio_diario = "${ejercicio.id}" && completado = true`,
+      });
+      const count = records.length;
+      setCompletedCount(count);
+      const target = Math.max(Number(ejercicio.series_objetivo) || 1, 1);
+      setIsFullyCompleted(count >= target);
+    } catch (err) {
+      console.error('Error checking exercise completion state', err);
+    }
+  };
+
+  useEffect(() => {
+    checkCompletion();
+  }, [ejercicio.id, ejercicio.series_objetivo]);
+
+  const handleLocalSetCompleted = (time?: number) => {
+    checkCompletion();
+    onSetCompleted(time);
+  };
+
+  const targetSeriesCount = Math.max(Number(ejercicio.series_objetivo) || 1, 1);
 
   return (
     <>
-      <div className="glass-panel overflow-hidden mb-6">
+      <div className={cn(
+        "glass-panel overflow-hidden mb-6 transition-all duration-350 border",
+        isFullyCompleted 
+          ? "bg-success/5 border-success/30 shadow-lg shadow-success/5" 
+          : "border-border/50"
+      )}>
         <div className="p-5 flex items-center justify-between">
           {/* Título clickeable para abrir el modal */}
           <div 
@@ -38,16 +71,27 @@ export default function ExerciseCard({ ejercicio, onSetCompleted }: ExerciseCard
               </div>
             )}
             <div>
-              <h3 className="text-xl font-bold text-text-main mb-1 group-hover:text-primary transition-colors flex items-center gap-2">
+              <h3 className={cn(
+                "text-xl font-bold mb-1 group-hover:text-primary transition-colors flex items-center gap-2",
+                isFullyCompleted ? "text-success" : "text-text-main"
+              )}>
                 {ejercicio.nombre}
+                {isFullyCompleted && <CheckCircle2 size={16} className="text-success shrink-0" />}
                 <Info size={16} className="text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
               </h3>
               <p className="text-sm text-text-muted flex items-center gap-2">
                 {!ejercicio.es_tiempo && (
-                  <span>{ejercicio.series_objetivo} series • {ejercicio.repeticiones_objetivo} reps</span>
+                  <span>
+                    {isFullyCompleted 
+                      ? `¡Completado! (${targetSeriesCount}/${targetSeriesCount} series)` 
+                      : `${completedCount}/${targetSeriesCount} series • ${ejercicio.repeticiones_objetivo} reps`
+                    }
+                  </span>
                 )}
                 {ejercicio.es_tiempo && (
-                  <span>Ejercicio por tiempo</span>
+                  <span>
+                    {isFullyCompleted ? "¡Completado!" : "Ejercicio por tiempo"}
+                  </span>
                 )}
               </p>
             </div>
@@ -74,7 +118,7 @@ export default function ExerciseCard({ ejercicio, onSetCompleted }: ExerciseCard
                     key={i}
                     ejercicioId={ejercicio.id} 
                     numeroSerie={i + 1}
-                    onComplete={onSetCompleted}
+                    onComplete={handleLocalSetCompleted}
                   />
                 ) : (
                   <SetRow 
@@ -84,7 +128,7 @@ export default function ExerciseCard({ ejercicio, onSetCompleted }: ExerciseCard
                     pesoObjetivo={ejercicio.peso_objetivo || 0} 
                     repsObjetivo={ejercicio.repeticiones_objetivo || "10"}
                     tiempoReposo={ejercicio.tiempo_reposo}
-                    onComplete={onSetCompleted}
+                    onComplete={handleLocalSetCompleted}
                   />
                 )
               ))}
